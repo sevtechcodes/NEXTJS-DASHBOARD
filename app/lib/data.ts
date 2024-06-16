@@ -9,21 +9,28 @@ import {
   Revenue,
 } from './definitions';
 import { formatCurrency } from './utils';
+import { unstable_noStore as noStore } from 'next/cache'; //to opt out of static rendering
+//Note: unstable_noStore is an experimental API and may change in the future. 
+//If you prefer to use a stable API in your own projects, 
+//you can also use the Segment Config Option export const dynamic = "force-dynamic".
 
 export async function fetchRevenue() {
   // Add noStore() here to prevent the response from being cached.
   // This is equivalent to in fetch(..., {cache: 'no-store'}).
+	noStore(); //not to cache the fetched data, ensuring that the data is always fresh and up-to-date.
 
   try {
     // Artificially delay a response for demo purposes.
+		//Let's simulate a slow data fetch.
+		//With dynamic rendering, your application is only as fast as your slowest data fetch!
     // Don't do this in production :)
 
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
+    console.log('Fetching revenue data...');
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     const data = await sql<Revenue>`SELECT * FROM revenue`;
 
-    // console.log('Data fetch completed after 3 seconds.');
+    console.log('Data fetch completed after 3 seconds.');
 
     return data.rows;
   } catch (error) {
@@ -33,6 +40,7 @@ export async function fetchRevenue() {
 }
 
 export async function fetchLatestInvoices() {
+	noStore();
   try {
     const data = await sql<LatestInvoiceRaw>`
       SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
@@ -53,6 +61,7 @@ export async function fetchLatestInvoices() {
 }
 
 export async function fetchCardData() {
+	noStore();
   try {
     // You can probably combine these into a single SQL query
     // However, we are intentionally splitting them to demonstrate
@@ -92,6 +101,7 @@ export async function fetchFilteredInvoices(
   query: string,
   currentPage: number,
 ) {
+	noStore();
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   try {
@@ -124,6 +134,7 @@ export async function fetchFilteredInvoices(
 }
 
 export async function fetchInvoicesPages(query: string) {
+	noStore();
   try {
     const count = await sql`SELECT COUNT(*)
     FROM invoices
@@ -145,6 +156,7 @@ export async function fetchInvoicesPages(query: string) {
 }
 
 export async function fetchInvoiceById(id: string) {
+	noStore();
   try {
     const data = await sql<InvoiceForm>`
       SELECT
@@ -188,6 +200,7 @@ export async function fetchCustomers() {
 }
 
 export async function fetchFilteredCustomers(query: string) {
+	noStore();
   try {
     const data = await sql<CustomersTableType>`
 		SELECT
