@@ -1,5 +1,5 @@
 'use server'; 
-//Server Action
+//Server Actions
  
 import { z } from 'zod'; //Zod, a TypeScript-first validation library to validate types
 import { sql } from '@vercel/postgres';
@@ -24,38 +24,58 @@ export async function createInvoice(formData: FormData) {
     amount: formData.get('amount'),
     status: formData.get('status'),
   });
-	const amountInCents = amount * 100; //It's usually good practice to store monetary values in cents in your database to eliminate JavaScript floating-point errors and ensure greater accuracy.
-	const date = new Date().toISOString().split('T')[0]; //creates a new date with the format "YYYY-MM-DD" for the invoice's creation date
-	await sql`
-	INSERT INTO invoices (customer_id, amount, status, date)
-	VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
-`;
-revalidatePath('/dashboard/invoices'); //Once the database has been updated, the /dashboard/invoices path will be revalidated, and fresh data will be fetched from the server.
-redirect('/dashboard/invoices'); //
+ 
+  const amountInCents = amount * 100;
+  const date = new Date().toISOString().split('T')[0];
+ 
+  try {
+    await sql`
+      INSERT INTO invoices (customer_id, amount, status, date)
+      VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
+    `;
+  } catch (error) {
+    return {
+      message: 'Database Error: Failed to Create Invoice.',
+    };
+  }
+  revalidatePath('/dashboard/invoices');
+  redirect('/dashboard/invoices');
 }
 
 export async function updateInvoice(id: string, formData: FormData) {
   const { customerId, amount, status } = UpdateInvoice.parse({
-		//Validating the types with Zod
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
     status: formData.get('status'),
   });
-
+ 
   const amountInCents = amount * 100;
-
-	//Passing the variables to the SQL query.
-  await sql` 
-    UPDATE invoices
-    SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
-    WHERE id = ${id}
-  `;
-
-  revalidatePath('/dashboard/invoices'); //Calling revalidatePath to clear the client cache and make a new server request.
-  redirect('/dashboard/invoices'); //Calling redirect to redirect the user to the invoice's page.
+ 
+  try {
+    await sql`
+        UPDATE invoices
+        SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
+        WHERE id = ${id}
+      `;
+  } catch (error) {
+    return { message: 'Database Error: Failed to Update Invoice.' };
+  }
+ 
+  revalidatePath('/dashboard/invoices');
+  redirect('/dashboard/invoices');
 }
 
 export async function deleteInvoice(id: string) {
-  await sql`DELETE FROM invoices WHERE id = ${id}`;
-  revalidatePath('/dashboard/invoices');
+	throw new Error('Failed to Delete Invoice');
+ 
+  // Unreachable code block
+	
+	try {
+		await sql`DELETE FROM invoices WHERE id = ${id}`;
+  	revalidatePath('/dashboard/invoices');
+		return { message: 'Deleted Invoice.' };
+	} catch (error) {
+		return { message: 'Database Error: Failed to Delete Invoice.' };
+	}
+  
 }
